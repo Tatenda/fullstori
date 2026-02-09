@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+.yarn/
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Database
+*.db
+*.db-journal
+dev.db*
+
+# Generated files
+next-env.d.ts
+
+# Logs
+*.log
+
+# Package manager
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Prisma
+prisma/migrations/

@@ -1,0 +1,162 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  category  String
+  isSystem  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entities Entity[]
+}
+
+model Entity {
+  id          String   @id @default(cuid())
+  name        String
+  roleId      String // Required: Reference to Role
+  roleLink    Role     @relation(fields: [roleId], references: [id])
+  entityType  String   @default("human") // "human" | "company" | "organization"
+  description String?
+  avatar      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  nodes DAGNode[]
+}
+
+model DAG {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  // Root node directional labels (optional, for customizing root node button labels)
+  rootLabelTop    String?
+  rootLabelBottom String?
+  rootLabelLeft   String?
+  rootLabelRight  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  nodes  DAGNode[]
+  edges  DAGEdge[]
+  events Event[]
+}
+
+model DAGNode {
+  id       String  @id @default(cuid())
+  category String? // Optional: Explicit category override (rarely used)
+  x        Float
+  y        Float
+  type     String? // 'custom', 'root', 'evidenceLeader'
+
+  // Relations
+  dagId String
+  dag   DAG    @relation(fields: [dagId], references: [id], onDelete: Cascade)
+
+  entityId String // Required: Every node must have an entity (single source of truth)
+  entity   Entity @relation(fields: [entityId], references: [id])
+
+  // Edges where this node is source or target
+  outgoingEdges DAGEdge[] @relation("SourceNode")
+  incomingEdges DAGEdge[] @relation("TargetNode")
+
+  // Events where this node is source
+  sourceEvents Event[] @relation("EventSource")
+
+  // Events where this node is target
+  targetEvents Event[] @relation("EventTarget")
+
+  // Events where this node is a participant
+  participantEvents Event[] @relation("EventParticipants")
+}
+
+model DAGEdge {
+  id    String  @id @default(cuid())
+  label String? // Custom label (used when relationshipTypeId is null)
+
+  // Relationship Type Reference (for referential integrity)
+  relationshipTypeId String? // Optional: Reference to RelationshipType
+  relationshipLink   RelationshipType? @relation(fields: [relationshipTypeId], references: [id], onDelete: SetNull)
+
+  // Route handles
+  sourceHandle String?
+  targetHandle String?
+
+  // Relations
+  dagId String
+  dag   DAG    @relation(fields: [dagId], references: [id], onDelete: Cascade)
+
+  sourceId   String
+  sourceNode DAGNode @relation("SourceNode", fields: [sourceId], references: [id], onDelete: Cascade)
+
+  targetId   String
+  targetNode DAGNode @relation("TargetNode", fields: [targetId], references: [id], onDelete: Cascade)
+
+  // Optional reference to event that created this edge
+  createdFromEventId String? @unique
+  createdFromEvent   Event?  @relation
+}
+
+model RelationshipType {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  category  String // e.g. "Financial", "Personal", etc.
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  edges DAGEdge[] // Edges that use this relationship type
+}
+
+model EventType {
+  id     String  @id @default(cuid())
+  name   String  @unique // e.g., "Arrest", "Meeting"
+  icon   String? // Lucide icon name, e.g., "Handcuffs"
+  color  String? // Hex code or tailwind class
+  events Event[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  date        DateTime
+  sortOrder   Int      @default(0) // Custom order for events on the same day
+
+  // Event Type Relation
+  eventTypeId String
+  eventType   EventType @relation(fields: [eventTypeId], references: [id])
+
+  // Scope
+  dagId String
+  dag   DAG    @relation(fields: [dagId], references: [id], onDelete: Cascade)
+
+  // Node Relationships (for directional and multi-participant events)
+  sourceNodeId String? // Optional: Primary source node (for directional events)
+  sourceNode   DAGNode? @relation("EventSource", fields: [sourceNodeId], references: [id], onDelete: SetNull)
+
+  targetNodeId String? // Optional: Primary target node (for directional events)
+  targetNode   DAGNode? @relation("EventTarget", fields: [targetNodeId], references: [id], onDelete: SetNull)
+
+  // Many-to-many with nodes (for multi-participant events)
+  participantNodes DAGNode[] @relation("EventParticipants")
+
+  // Optional edge created from this event
+  createdEdgeId String?  @unique
+  createdEdge   DAGEdge? @relation(fields: [createdEdgeId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

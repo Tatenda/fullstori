@@ -3,7 +3,7 @@
  * Run with: npx tsx prisma/export-data.ts
  */
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -45,6 +45,10 @@ async function exportData() {
     console.log(`Exported ${events.length} events`);
 
     // Create export object
+    type EventWithParticipants = Prisma.EventGetPayload<{
+      include: { participantNodes: { select: { id: true } } };
+    }>;
+
     const exportData = {
       exportedAt: new Date().toISOString(),
       roles,
@@ -54,7 +58,7 @@ async function exportData() {
       dags,
       dagNodes,
       dagEdges,
-      events: events.map((event) => ({
+      events: events.map((event: EventWithParticipants) => ({
         ...event,
         participantNodeIds: event.participantNodes.map((n) => n.id),
         participantNodes: undefined, // Remove the nested objects

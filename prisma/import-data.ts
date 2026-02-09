@@ -8,11 +8,35 @@
  * 4. Run: npx tsx prisma/import-data.ts
  */
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import * as fs from "fs";
 import * as path from "path";
 
 const prisma = new PrismaClient();
+
+// Type definitions for imported data
+type ImportRole = Prisma.RoleCreateInput;
+type ImportRelationshipType = Prisma.RelationshipTypeCreateInput;
+type ImportEventType = Prisma.EventTypeCreateInput;
+type ImportEntity = Prisma.EntityCreateInput;
+type ImportDAG = Prisma.DAGCreateInput;
+type ImportDAGNode = Prisma.DAGNodeCreateInput;
+type ImportDAGEdge = Prisma.DAGEdgeCreateInput;
+type ImportEvent = Omit<Prisma.EventCreateInput, "participantNodes"> & {
+  participantNodeIds?: string[];
+};
+
+interface ImportData {
+  exportedAt: string;
+  roles: ImportRole[];
+  relationshipTypes: ImportRelationshipType[];
+  eventTypes: ImportEventType[];
+  entities: ImportEntity[];
+  dags: ImportDAG[];
+  dagNodes: ImportDAGNode[];
+  dagEdges: ImportDAGEdge[];
+  events: ImportEvent[];
+}
 
 async function importData() {
   console.log("Starting data import...");
@@ -26,7 +50,7 @@ async function importData() {
     process.exit(1);
   }
 
-  const exportData = JSON.parse(fs.readFileSync(exportPath, "utf-8"));
+  const exportData = JSON.parse(fs.readFileSync(exportPath, "utf-8")) as ImportData;
   console.log(`📦 Importing data exported at: ${exportData.exportedAt}\n`);
 
   try {

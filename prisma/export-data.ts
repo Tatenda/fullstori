@@ -45,9 +45,12 @@ async function exportData() {
     console.log(`Exported ${events.length} events`);
 
     // Create export object
-    type EventWithParticipants = Prisma.EventGetPayload<{
-      include: { participantNodes: { select: { id: true } } };
-    }>;
+    // Type the event with participants using Awaited and ReturnType
+    type EventWithParticipants = Awaited<
+      ReturnType<typeof prisma.event.findMany<{
+        include: { participantNodes: { select: { id: true } } };
+      }>>
+    >[number];
 
     const exportData = {
       exportedAt: new Date().toISOString(),

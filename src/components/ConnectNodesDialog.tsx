@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, Link, Calendar } from 'lucide-react';
-import toast from 'react-hot-toast';
 import clsx from 'clsx';
+import { Calendar, Link, Save, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 
 interface ConnectNodesDialogProps {
   isOpen: boolean;
@@ -14,6 +14,7 @@ interface ConnectNodesDialogProps {
   targetHandle?: string;
   onConfirm: (data: {
     relationship: string;
+    relationshipTypeId?: string;
     createEvent: boolean;
     eventTitle?: string;
     eventDate?: string;
@@ -27,17 +28,17 @@ interface ConnectNodesDialogProps {
 const ConnectNodesDialog: React.FC<ConnectNodesDialogProps> = ({
   isOpen,
   onClose,
-  sourceNodeId,
-  targetNodeId,
+  sourceNodeId: _sourceNodeId,
+  targetNodeId: _targetNodeId,
   sourceNodeLabel,
   targetNodeLabel,
-  sourceHandle,
-  targetHandle,
+  sourceHandle: _sourceHandle,
+  targetHandle: _targetHandle,
   onConfirm,
-  dagId
+  dagId: _dagId
 }) => {
   const [relationship, setRelationship] = useState('');
-  const [relationshipTypeId, setRelationshipTypeId] = useState<string>('');
+  const [relationshipTypeId, _setRelationshipTypeId] = useState<string>('');
   const [isCustomRelationship, setIsCustomRelationship] = useState(true);
   const [relationshipsByCategory, setRelationshipsByCategory] = useState<Record<string, Array<{ id: string; name: string }>>>({});
   const [isLoadingRelationships, setIsLoadingRelationships] = useState(false);

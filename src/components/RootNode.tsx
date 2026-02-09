@@ -1,8 +1,8 @@
-import { NodeData } from '@/lib/types';
+import { type NodeData } from '@/lib/types';
 import clsx from 'clsx';
 import { Scale, UserPlus } from "lucide-react";
 import { memo, useRef, useState } from 'react';
-import { Handle, NodeProps, NodeToolbar, Position } from 'reactflow';
+import { Handle, type NodeProps, NodeToolbar, Position } from 'reactflow';
 
 const RootNode = ({ data, selected }: NodeProps<NodeData>) => {
   const [isHovered, setIsHovered] = useState(false);

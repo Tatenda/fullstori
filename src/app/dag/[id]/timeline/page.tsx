@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronLeft, Calendar, Filter, ArrowLeft, Clock } from 'lucide-react';
+import { Calendar, Filter, ArrowLeft, Clock } from 'lucide-react';
 import EventTimeline from '@/components/EventTimeline';
 import { Event, EventType } from '@/lib/types';
 import { PageHeader } from '@/components/ui/PageHeader';

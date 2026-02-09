@@ -1,4 +1,4 @@
-import { Event, EventType, NetworkNode } from '@/lib/types';
+import { type Event, type EventType, type NetworkNode } from '@/lib/types';
 import { ArrowLeft, ArrowRight, Calendar, ChevronDown, Save, Trash2, Users, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';

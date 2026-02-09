@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Save, Trash2, Link, ArrowLeftRight } from 'lucide-react';
-import clsx from 'clsx';
+import { ArrowLeftRight, Link, Save, Trash2, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 interface EditEdgeDialogProps {
   isOpen: boolean;
@@ -15,7 +14,7 @@ const EditEdgeDialog: React.FC<EditEdgeDialogProps> = ({ isOpen, onClose, edgeLa
   const [label, setLabel] = useState(edgeLabel);
   const [relationshipTypeId, setRelationshipTypeId] = useState<string>('');
   const [relationshipsByCategory, setRelationshipsByCategory] = useState<Record<string, Array<{ id: string; name: string }>>>({});
-  const [isLoadingRelationships, setIsLoadingRelationships] = useState(true);
+  const [_isLoadingRelationships, setIsLoadingRelationships] = useState(true);
   const [isCustomRelationship, setIsCustomRelationship] = useState(true);
 
   // Fetch relationships

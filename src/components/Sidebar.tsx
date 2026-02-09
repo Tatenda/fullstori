@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { X, User, Briefcase, FileText, Landmark, UserPlus, Pencil, Trash2, PlusCircle } from "lucide-react";
+import { getRoleCategory, getRoleIcon, getRoleStyle } from "@/lib/roleUtils";
+import { type Event, type NetworkNode } from "@/lib/types";
 import clsx from "clsx";
-import { getRoleCategory, getRoleStyle, getRoleIcon } from "@/lib/roleUtils";
-import { NetworkNode, Event, Entity } from "@/lib/types";
-import EventTimeline from "./EventTimeline";
-import AddEventDialog from "./AddEventDialog";
+import { Pencil, PlusCircle, Trash2, UserPlus, X } from "lucide-react";
+import React, { useEffect, useState } from 'react';
 import toast from "react-hot-toast";
+import AddEventDialog from "./AddEventDialog";
+import EventTimeline from "./EventTimeline";
 
 interface SidebarProps {
   node: NetworkNode | null;

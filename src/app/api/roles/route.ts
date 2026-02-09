@@ -8,7 +8,7 @@ const CreateRoleSchema = z.object({
 });
 
 // GET /api/roles - Fetch all roles (system and custom)
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const roles = await prisma.role.findMany({
       orderBy: [

@@ -8,12 +8,11 @@ import EventTimeline from '@/components/EventTimeline';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { Event, EventType, NetworkNode, RoleCategory } from '@/lib/types';
+import { calculateSmartPosition, findNonConflictingPosition } from '@/lib/nodePositioning';
+import { type Event, type EventType, type NetworkNode, type RoleCategory } from '@/lib/types';
 import { Clock, Filter, PlusCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { createEntity } from '@/lib/api';
-import { calculateSmartPosition, findNonConflictingPosition } from '@/lib/nodePositioning';
 
 interface TimelineViewProps {
   dagId: string;
@@ -400,28 +399,33 @@ export default function TimelineView({ dagId, onViewChange }: TimelineViewProps)
       {/* Timeline Content */}
       <div className="flex-1 overflow-hidden relative rounded-t-2xl md:rounded-t-3xl bg-background shadow-sm mx-2 md:mx-4 mt-20 md:mt-24 border border-border/50">
         <div className="h-full overflow-y-auto p-6 md:p-8">
-          {isLoading ? (
-            <LoadingState message="Loading timeline..." />
-          ) : filteredEvents.length === 0 ? (
-            <EmptyState
-              icon={Clock}
-              title={filterType === 'all' ? "No events recorded yet" : `No ${selectedEventType?.name.toLowerCase() || 'filtered'} events`}
-              description={
-                filterType === 'all'
-                  ? "Start logging events to build a chronological timeline of your investigation"
-                  : `No events match the selected filter. Try selecting a different event type or view all events.`
-              }
-              action={
-                filterType === 'all' ? {
-                  label: 'Add First Event',
-                  onClick: () => setIsAddEventOpen(true),
-                } : {
-                  label: 'View All Events',
-                  onClick: () => setFilterType('all'),
-                }
-              }
-            />
-          ) : (
+          {(() => {
+            if (isLoading) {
+              return <LoadingState message="Loading timeline..." />;
+            }
+            if (filteredEvents.length === 0) {
+              return (
+                <EmptyState
+                  icon={Clock}
+                  title={filterType === 'all' ? "No events recorded yet" : `No ${selectedEventType?.name.toLowerCase() || 'filtered'} events`}
+                  description={
+                    filterType === 'all'
+                      ? "Start logging events to build a chronological timeline of your investigation"
+                      : `No events match the selected filter. Try selecting a different event type or view all events.`
+                  }
+                  action={
+                    filterType === 'all' ? {
+                      label: 'Add First Event',
+                      onClick: () => setIsAddEventOpen(true),
+                    } : {
+                      label: 'View All Events',
+                      onClick: () => setFilterType('all'),
+                    }
+                  }
+                />
+              );
+            }
+            return (
             <div>
               {/* Timeline Header Stats */}
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
@@ -449,7 +453,7 @@ export default function TimelineView({ dagId, onViewChange }: TimelineViewProps)
                     </select>
                   </div>
                   <Button
-                    variant="default"
+                    variant="primary"
                     size="sm"
                     onClick={() => setIsAddEventOpen(true)}
                     className="flex items-center gap-2"
@@ -468,7 +472,8 @@ export default function TimelineView({ dagId, onViewChange }: TimelineViewProps)
                 dagId={dagId}
               />
             </div>
-          )}
+            );
+          })()}
         </div>
       </div>
 

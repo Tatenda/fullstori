@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 // GET /api/dags - List all DAGs
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const dags = await prisma.dAG.findMany({
       orderBy: { updatedAt: 'desc' },

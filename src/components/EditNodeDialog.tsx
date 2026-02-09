@@ -1,5 +1,5 @@
 import { getRoleCategory, getRoleStyle } from '@/lib/roleUtils';
-import { RoleCategory } from '@/lib/types';
+import { type RoleCategory } from '@/lib/types';
 import clsx from 'clsx';
 import { Pencil, Save, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
@@ -127,7 +127,7 @@ const EditNodeDialog: React.FC<EditNodeDialogProps> = ({ isOpen, onClose, onSubm
         } 
         // Priority 2: Find role by name if we don't have ID (legacy support / fallback)
         else {
-            Object.entries(rolesByCategory).forEach(([cat, roles]) => {
+            Object.entries(rolesByCategory).forEach(([_cat, roles]) => {
                 const match = roles.find(r => r.name === nodeData.role);
                 if (match) {
                     foundId = match.id;

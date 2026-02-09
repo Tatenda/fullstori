@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Network, GitBranch, Calendar, Trash2, ArrowRight, Loader2, FolderOpen, MoreVertical } from 'lucide-react';
+import { Network, GitBranch, Calendar, Trash2, ArrowRight, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
 import { format } from 'date-fns';

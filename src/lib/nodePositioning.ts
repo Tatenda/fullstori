@@ -1,5 +1,4 @@
-import { Node, Position } from 'reactflow';
-import { NetworkNode } from './types';
+import type { NetworkNode } from './types';
 
 /**
  * Calculate smart position for a new node based on related nodes

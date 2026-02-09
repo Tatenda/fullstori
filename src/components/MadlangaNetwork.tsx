@@ -4,16 +4,15 @@ import { AlertCircle, Check, CheckCircle2, ChevronDown, ChevronUp, Filter, Loade
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import ReactFlow, {
-  addEdge,
   Background,
-  Connection,
+  type Connection,
   Controls,
-  Edge,
+  type Edge,
   MiniMap,
-  Node,
-  NodeChange,
+  type Node,
+  type NodeChange,
   Panel,
-  ReactFlowInstance,
+  type ReactFlowInstance,
   useEdgesState,
   useNodesState
 } from "reactflow";
@@ -24,18 +23,18 @@ import { fetchDAG as getDAG, saveDAG } from "@/lib/api"; // Aliased fetchDAG to 
 import { AutoSave } from "@/lib/autoSave";
 import { calculateSmartPosition, findNonConflictingPosition } from "@/lib/nodePositioning";
 import { getRoleCategory, getRoleStyle } from "@/lib/roleUtils";
-import { Direction, EntitySearchResult, NetworkNode, RoleCategory } from "@/lib/types";
+import { type Direction, type EntitySearchResult, type NetworkNode, type RoleCategory } from "@/lib/types";
 import clsx from "clsx";
 import Sidebar from "./Sidebar";
 
-import AddNodeDialog, { NewNodeData } from "./AddNodeDialog";
+import AddNodeDialog, { type NewNodeData } from "./AddNodeDialog";
+import ConnectNodesDialog from "./ConnectNodesDialog";
 import CustomNode from "./CustomNode";
 import EditEdgeDialog from './EditEdgeDialog';
-import EditNodeDialog, { EditedNodeData } from "./EditNodeDialog";
+import EditNodeDialog, { type EditedNodeData } from "./EditNodeDialog";
 import { EditRootLabelsDialog } from './EditRootLabelsDialog';
 import EvidenceLeaderNode from "./EvidenceLeaderNode";
 import RootNode from "./RootNode";
-import ConnectNodesDialog from "./ConnectNodesDialog";
 
 interface MadlangaNetworkProps {
   dagId?: string; // Optional, defaults to "dag-main" for backward compatibility
@@ -493,7 +492,7 @@ const MadlangaNetwork: React.FC<MadlangaNetworkProps> = ({ dagId: propDagId, onV
     eventTypeId?: string;
     customTypeName?: string;
   }) => {
-    if (!pendingConnection) return;
+    if (!pendingConnection || !pendingConnection.source || !pendingConnection.target) return;
 
     try {
       // Create the edge with the relationship label
@@ -501,32 +500,27 @@ const MadlangaNetwork: React.FC<MadlangaNetworkProps> = ({ dagId: propDagId, onV
         style: { stroke: string; strokeWidth: number };
         labelStyle: { fill: string; fontWeight: number; fontSize: number };
         labelBgStyle: { fill: string; rx: number; ry: number };
-        markerEnd?: { type: string; color: string; width: number; height: number };
+        markerEnd?: string | { type: string; color: string; width: number; height: number };
       } = {
         id: `e-${pendingConnection.source}-${pendingConnection.target}`,
         source: pendingConnection.source,
         target: pendingConnection.target,
-        sourceHandle: pendingConnection.sourceHandle,
-        targetHandle: pendingConnection.targetHandle,
+        sourceHandle: pendingConnection.sourceHandle || undefined,
+        targetHandle: pendingConnection.targetHandle || undefined,
         label: data.relationship,
         style: { stroke: '#cbd5e1', strokeWidth: 2 },
         labelStyle: { fill: '#64748b', fontWeight: 700, fontSize: 11 },
         labelBgStyle: { fill: '#f8fafc', rx: 6, ry: 6 },
-        markerEnd: {
-            type: 'arrowclosed',
-            color: '#cbd5e1',
-            width: 20,
-            height: 20,
-        },
-      };
+        markerEnd: 'arrowclosed' as const,
+    };
 
       // Apply edge styling based on relationship
       const style = getEdgeStyle(data.relationship);
       newEdge.style.stroke = style.stroke;
       newEdge.labelStyle.fill = style.labelText;
       newEdge.labelBgStyle.fill = style.labelBg;
-      // Update arrow color to match edge color
-      if (newEdge.markerEnd) {
+      // Update arrow color to match edge color (only if markerEnd is an object)
+      if (newEdge.markerEnd && typeof newEdge.markerEnd === 'object') {
         newEdge.markerEnd.color = style.stroke;
       }
 
@@ -784,7 +778,7 @@ const MadlangaNetwork: React.FC<MadlangaNetworkProps> = ({ dagId: propDagId, onV
       style: { stroke: string; strokeWidth: number };
       labelStyle: { fill: string; fontWeight: number; fontSize: number };
       labelBgStyle: { fill: string; rx: number; ry: number };
-      markerEnd?: { type: string; color: string; width: number; height: number };
+      markerEnd?: string | { type: string; color: string; width: number; height: number };
       relationshipTypeId?: string;
     } = {
         id: `e-${selectedNode.id}-${newNodeId}`,
@@ -795,12 +789,7 @@ const MadlangaNetwork: React.FC<MadlangaNetworkProps> = ({ dagId: propDagId, onV
         style: { stroke: '#cbd5e1', strokeWidth: 2 },
         labelStyle: { fill: '#64748b', fontWeight: 700, fontSize: 11 },
         labelBgStyle: { fill: '#f8fafc', rx: 6, ry: 6 },
-        markerEnd: {
-            type: 'arrowclosed',
-            color: '#cbd5e1',
-            width: 20,
-            height: 20,
-        },
+        markerEnd: 'arrowclosed' as const,
     };
 
     // Set handles based on direction for proper connection points
@@ -1170,12 +1159,7 @@ const MadlangaNetwork: React.FC<MadlangaNetworkProps> = ({ dagId: propDagId, onV
                     type: 'smoothstep', // Clean, technical lines
                     animated: true,
                     style: { stroke: '#cbd5e1', strokeWidth: 1.5 }, // Slate-300
-                    markerEnd: {
-                        type: 'arrowclosed',
-                        color: '#cbd5e1',
-                        width: 20,
-                        height: 20,
-                    },
+                    markerEnd: 'arrowclosed' as const,
                 }}
             >
                 <Background gap={40} size={1} color="#f1f5f9" />
@@ -1348,7 +1332,7 @@ const MadlangaNetwork: React.FC<MadlangaNetworkProps> = ({ dagId: propDagId, onV
           )}
 
           {/* Connect Nodes Dialog */}
-          {pendingConnection && (
+          {pendingConnection && pendingConnection.source && pendingConnection.target && (
             <ConnectNodesDialog
               isOpen={isConnectNodesOpen}
               onClose={() => {
@@ -1359,8 +1343,8 @@ const MadlangaNetwork: React.FC<MadlangaNetworkProps> = ({ dagId: propDagId, onV
               targetNodeId={pendingConnection.target}
               sourceNodeLabel={nodes.find(n => n.id === pendingConnection.source)?.data.label || 'Unknown'}
               targetNodeLabel={nodes.find(n => n.id === pendingConnection.target)?.data.label || 'Unknown'}
-              sourceHandle={pendingConnection.sourceHandle}
-              targetHandle={pendingConnection.targetHandle}
+              sourceHandle={pendingConnection.sourceHandle || undefined}
+              targetHandle={pendingConnection.targetHandle || undefined}
               onConfirm={handleConfirmConnection}
               dagId={dagId}
             />
@@ -1380,23 +1364,19 @@ const MadlangaNetwork: React.FC<MadlangaNetworkProps> = ({ dagId: propDagId, onV
                       const updated = eds.map(e => {
                           if (e.id === selectedEdge.id) {
                               const newStyle = getEdgeStyle(newLabel);
-                              return {
+                              const updatedEdge = {
                                   ...e,
                                   label: newLabel,
                                   relationshipTypeId: relationshipTypeId, // Store relationship type ID for referential integrity
                                   style: { ...e.style, stroke: newStyle.stroke },
                                   labelStyle: { ...e.labelStyle, fill: newStyle.labelText },
                                   labelBgStyle: { ...e.labelBgStyle, fill: newStyle.labelBg },
-                                  markerEnd: e.markerEnd ? {
+                                  markerEnd: e.markerEnd && typeof e.markerEnd === 'object' ? {
                                       ...e.markerEnd,
                                       color: newStyle.stroke
-                                  } : {
-                                      type: 'arrowclosed',
-                                      color: newStyle.stroke,
-                                      width: 20,
-                                      height: 20,
-                                  }
-                              };
+                                  } as typeof e.markerEnd : e.markerEnd
+                              } as unknown as Edge;
+                              return updatedEdge;
                           }
                           return e;
                       });
@@ -1424,7 +1404,7 @@ const MadlangaNetwork: React.FC<MadlangaNetworkProps> = ({ dagId: propDagId, onV
                               // Swap source and target nodes
                               // Keep the handles the same so connection points don't move
                               // The arrow (markerEnd) will automatically point to the new target
-                              const reversedEdge = {
+                              const reversedEdge: Edge = {
                                   ...e,
                                   source: e.target,
                                   target: e.source,
@@ -1432,12 +1412,7 @@ const MadlangaNetwork: React.FC<MadlangaNetworkProps> = ({ dagId: propDagId, onV
                                   sourceHandle: e.sourceHandle,
                                   targetHandle: e.targetHandle,
                                   // Ensure markerEnd is preserved and points to the new target
-                                  markerEnd: e.markerEnd || {
-                                      type: 'arrowclosed',
-                                      color: e.style?.stroke || '#cbd5e1',
-                                      width: 20,
-                                      height: 20,
-                                  },
+                                  markerEnd: e.markerEnd,
                                   // Remove markerStart if it exists (we only want arrow at target)
                                   markerStart: undefined,
                               };

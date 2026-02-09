@@ -18,7 +18,10 @@ export default function DAGPage() {
   // Update view when URL changes
   useEffect(() => {
     const view = searchParams.get('view') || 'graph';
-    setCurrentView(view as 'graph' | 'timeline');
+    // Use setTimeout to avoid synchronous setState in effect
+    setTimeout(() => {
+      setCurrentView(view as 'graph' | 'timeline');
+    }, 0);
   }, [searchParams]);
 
   // Handle view change - update URL without navigation

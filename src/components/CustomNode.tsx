@@ -1,9 +1,9 @@
 import { getRoleCategory, getRoleIcon, getRoleStyle } from '@/lib/roleUtils';
-import { NodeData } from '@/lib/types';
+import { type NodeData } from '@/lib/types';
 import clsx from 'clsx';
 import { UserPlus } from 'lucide-react';
 import { memo, useRef, useState } from 'react';
-import { Handle, NodeProps, NodeToolbar, Position } from 'reactflow';
+import { Handle, type NodeProps, NodeToolbar, Position } from 'reactflow';
 
 const CustomNode = ({ data, selected }: NodeProps<NodeData>) => {
   const { role, label, description, avatar, onAddConnection } = data;

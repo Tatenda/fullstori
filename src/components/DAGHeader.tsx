@@ -1,12 +1,10 @@
 "use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { Network, GitBranch, Calendar, FolderOpen, Settings } from 'lucide-react';
+import { type RoleCategory } from '@/lib/types';
 import clsx from 'clsx';
-import { StatBadge } from './ui/StatBadge';
-import { getRoleStyle } from '@/lib/roleUtils';
-import { RoleCategory } from '@/lib/types';
+import { FolderOpen, Network, Settings } from 'lucide-react';
+import Link from 'next/link';
+import React from 'react';
 
 interface DAGHeaderProps {
   dagId: string;
@@ -53,14 +51,14 @@ interface DAGHeaderProps {
 }
 
 export const DAGHeader: React.FC<DAGHeaderProps> = ({
-  dagId,
+  dagId: _dagId,
   dagName,
-  stats,
+  stats: _stats,
   currentView,
   onViewChange,
-  graphProps,
-  timelineProps,
-  rootLabels,
+  graphProps: _graphProps,
+  timelineProps: _timelineProps,
+  rootLabels: _rootLabels,
   onEditRootLabels,
 }) => {
   return (

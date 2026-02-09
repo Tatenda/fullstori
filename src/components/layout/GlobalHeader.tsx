@@ -1,8 +1,8 @@
 "use client";
 
 import React from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { Network, FolderOpen, Menu, X, Plus } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { Network, Menu, X, Plus } from 'lucide-react';
 import clsx from 'clsx';
 import Link from 'next/link';
 
@@ -12,7 +12,6 @@ interface GlobalHeaderProps {
 }
 
 export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ className, onDAGsPageAction }) => {
-  const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 

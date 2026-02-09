@@ -285,7 +285,7 @@ export async function POST(
 
       // Delete missing nodes (but never delete root nodes)
       const sentNodeIds = nodes.map((n: any) => n.id);
-      const nodesToDelete = sentNodeIds.filter((nodeId: string) => !rootNodeIds.has(nodeId));
+      const _nodesToDelete = sentNodeIds.filter((nodeId: string) => !rootNodeIds.has(nodeId));
       
       await tx.dAGNode.deleteMany({
         where: {

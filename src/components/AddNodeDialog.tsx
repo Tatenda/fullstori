@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { X, Save, UserPlus, ChevronDown, Search, Check } from 'lucide-react';
-import { RoleCategory, Direction, EntitySearchResult } from '@/lib/types';
+import { searchEntities } from '@/lib/api';
 import { getRoleStyle } from '@/lib/roleUtils';
-import { searchEntities, createEntity } from '@/lib/api';
-import toast from 'react-hot-toast';
+import { type Direction, type EntitySearchResult, type RoleCategory } from '@/lib/types';
 import clsx from 'clsx';
+import { Check, Save, Search, UserPlus, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 
 interface AddNodeDialogProps {
   isOpen: boolean;
@@ -382,7 +382,6 @@ const AddNodeDialog: React.FC<AddNodeDialogProps> = ({ isOpen, onClose, onSubmit
     }
   };
 
-  const selectedStyle = getRoleStyle(category);
   const currentRoleSuggestions = rolesByCategory[category] || [];
 
   return (

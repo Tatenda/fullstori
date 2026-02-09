@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    let { 
+    const { 
       title, 
       description, 
       date, 

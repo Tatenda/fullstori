@@ -1,9 +1,9 @@
-import React from 'react';
-import * as LucideIcons from 'lucide-react';
-import { Clock, Edit, ChevronUp, ChevronDown } from 'lucide-react';
-import { Event } from '@/lib/types';
+import { type Event } from '@/lib/types';
 import clsx from 'clsx';
 import { format, isSameDay } from 'date-fns';
+import * as LucideIcons from 'lucide-react';
+import { ChevronDown, ChevronUp, Clock, Edit } from 'lucide-react';
+import React from 'react';
 
 interface EventTimelineProps {
   events: Event[];
@@ -14,7 +14,7 @@ interface EventTimelineProps {
   dagId?: string;
 }
 
-const EventTimeline: React.FC<EventTimelineProps> = ({ events, compact = false, currentEntityId, onEventClick, onReorder, dagId }) => {
+const EventTimeline: React.FC<EventTimelineProps> = ({ events, compact = false, currentEntityId: _currentEntityId, onEventClick, onReorder, dagId: _dagId }) => {
   if (events.length === 0) {
     return (
       <div className="text-center p-6 bg-muted/20 rounded-xl border border-dashed border-border">

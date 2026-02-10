@@ -1,6 +1,6 @@
 import { type Event } from '@/lib/types';
 import clsx from 'clsx';
-import { format, isSameDay } from 'date-fns';
+import { format } from 'date-fns';
 import * as LucideIcons from 'lucide-react';
 import { ChevronDown, ChevronUp, Clock, Edit } from 'lucide-react';
 import React from 'react';
@@ -29,12 +29,32 @@ const EventTimeline: React.FC<EventTimelineProps> = ({ events, compact = false, 
       <div className="absolute top-2 bottom-2 left-[19px] w-0.5 bg-gradient-to-b from-border via-border to-transparent" />
 
       {events.map((event, index) => {
-        // Check if there are other events on the same day
-        const eventDate = new Date(event.date);
-        const sameDayEvents = events.filter(e => isSameDay(new Date(e.date), eventDate));
-        const canMoveUp = sameDayEvents.length > 1 && index > 0 && isSameDay(new Date(events[index - 1].date), eventDate);
-        const canMoveDown = sameDayEvents.length > 1 && index < events.length - 1 && isSameDay(new Date(events[index + 1].date), eventDate);
-        // Dynamic Icon
+        // Handle events with or without dates
+        const eventDate = event.date ? new Date(event.date) : null;
+        const eventSeriesDay = event.seriesDay;
+        
+        // Group events by date or seriesDay
+        const getEventGroupKey = (e: Event) => {
+          if (e.date) return `date-${new Date(e.date).toISOString().split('T')[0]}`;
+          if (e.seriesDay !== null && e.seriesDay !== undefined) return `series-${e.seriesDay}`;
+          return 'no-date';
+        };
+        
+        const currentGroupKey = getEventGroupKey(event);
+        const sameGroupEvents = events.filter(e => getEventGroupKey(e) === currentGroupKey);
+        
+        const prevEvent = index > 0 ? events[index - 1] : null;
+        const prevGroupKey = prevEvent ? getEventGroupKey(prevEvent) : null;
+        const canMoveUp = sameGroupEvents.length > 1 && index > 0 && prevGroupKey === currentGroupKey;
+        const canMoveDown = sameGroupEvents.length > 1 && index < events.length - 1 && getEventGroupKey(events[index + 1]) === currentGroupKey;
+        
+        // Check if this is a new group (different from previous event)
+        const isNewGroup = index === 0 || prevGroupKey !== currentGroupKey;
+        // Dynamic Icon - with safety check for eventType
+        if (!event.eventType) {
+          console.error('Event missing eventType:', event);
+          return null; // Skip rendering events without eventType
+        }
         const IconComponent = (LucideIcons as any)[event.eventType.icon || 'HelpCircle'] || LucideIcons.HelpCircle;
         const color = event.eventType.color || '#9ca3af';
 
@@ -46,10 +66,33 @@ const EventTimeline: React.FC<EventTimelineProps> = ({ events, compact = false, 
         const hasParticipants = participantNodes.length > 0;
 
         return (
-          <div 
-            key={event.id} 
-            className="relative flex gap-4 group"
-          >
+          <React.Fragment key={event.id}>
+            {/* Day/Series Separator */}
+            {isNewGroup && index > 0 && (
+              <div className="py-8 my-8">
+                <div className="relative flex items-center">
+                  {/* Fading line left */}
+                  <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border/70 to-transparent"></div>
+                  {/* Date/Series label */}
+                  <div className="px-4">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {eventDate 
+                        ? format(eventDate, 'EEEE, MMMM d, yyyy')
+                        : eventSeriesDay !== null && eventSeriesDay !== undefined
+                        ? `Day ${eventSeriesDay}`
+                        : 'No Date'
+                      }
+                    </span>
+                  </div>
+                  {/* Fading line right */}
+                  <div className="flex-1 h-px bg-gradient-to-l from-transparent via-border/70 to-transparent"></div>
+                </div>
+              </div>
+            )}
+            
+            <div 
+              className="relative flex gap-4 group"
+            >
             {/* Dot / Icon */}
             <div 
                 className={clsx(
@@ -76,10 +119,20 @@ const EventTimeline: React.FC<EventTimelineProps> = ({ events, compact = false, 
                     <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
                             <Clock size={12} />
-                        {format(new Date(event.date), 'MMM d, yyyy')}
-                    </span>
-                        {/* Reorder buttons for same-day events */}
-                        {onReorder && sameDayEvents.length > 1 && (
+                            {eventDate 
+                              ? format(eventDate, 'MMM d, yyyy')
+                              : eventSeriesDay !== null && eventSeriesDay !== undefined
+                              ? `Day ${eventSeriesDay}`
+                              : 'No Date'
+                            }
+                        </span>
+                        {event.sourceDag && (
+                          <span className="text-xs text-muted-foreground/70 px-2 py-0.5 bg-muted rounded">
+                            From: {event.sourceDag.name}
+                          </span>
+                        )}
+                        {/* Reorder buttons for same-group events */}
+                        {onReorder && sameGroupEvents.length > 1 && (
                             <div className="flex items-center gap-1 border-r border-border pr-2 mr-1">
                                 <button
                                     onClick={(e) => {
@@ -130,12 +183,38 @@ const EventTimeline: React.FC<EventTimelineProps> = ({ events, compact = false, 
                     </div>
                 </div>
                 
-                <h4 className={clsx("font-semibold text-foreground mb-2", compact ? "text-sm" : "text-base")}>
-                    {event.title}
-                </h4>
+                <div className="flex items-center gap-2 mb-2">
+                    <h4 className={clsx("font-semibold text-foreground", compact ? "text-sm" : "text-base")}>
+                        {event.title}
+                    </h4>
+                    {eventSeriesDay !== null && eventSeriesDay !== undefined && (
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
+                            Day {eventSeriesDay}
+                        </span>
+                    )}
+                </div>
                 
                 {event.description && !compact && (
                     <p className="text-sm text-muted-foreground mb-3 line-clamp-2 leading-relaxed">{event.description}</p>
+                )}
+
+                {/* Tags */}
+                {event.tags && event.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                        {event.tags.map(tag => (
+                            <span
+                                key={tag.id}
+                                className="text-xs font-medium px-2 py-0.5 rounded-md border"
+                                style={{
+                                    backgroundColor: tag.color ? `${tag.color}15` : 'transparent',
+                                    borderColor: tag.color || 'currentColor',
+                                    color: tag.color || 'inherit'
+                                }}
+                            >
+                                {tag.name}
+                            </span>
+                        ))}
+                    </div>
                 )}
 
                 {/* Node Relationships */}
@@ -176,6 +255,7 @@ const EventTimeline: React.FC<EventTimelineProps> = ({ events, compact = false, 
                 )}
             </div>
           </div>
+          </React.Fragment>
         );
       })}
     </div>

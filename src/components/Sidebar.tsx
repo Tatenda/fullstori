@@ -39,12 +39,16 @@ const Sidebar: React.FC<SidebarProps> = ({ node, onClose, onAddConnection, onEdi
         const res = await fetch(`/api/events?dagId=${dagId}&nodeId=${node.id}`);
         if (res.ok) {
             const data = await res.json();
+            console.log('Sidebar events data:', data);
             setEvents(data.events || []);
         } else {
-            console.error("Failed to fetch events:", res.status);
+            const error = await res.json().catch(() => ({ error: 'Unknown error' }));
+            console.error("Failed to fetch events:", res.status, error);
+            setEvents([]);
         }
     } catch (error) {
         console.error("Failed to load events", error);
+        setEvents([]);
     } finally {
         setIsLoadingEvents(false);
     }

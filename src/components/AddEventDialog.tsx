@@ -7,7 +7,10 @@ import toast from 'react-hot-toast';
 interface EventFormData {
   title: string;
   description?: string;
-  date: string;
+  date?: string;
+  seriesDay?: number;
+  tagIds?: string[];
+  sourceDagId?: string;
   eventTypeId?: string;
   customTypeName?: string;
   sourceNodeId?: string;
@@ -32,6 +35,9 @@ const AddEventDialog: React.FC<AddEventDialogProps> = ({ isOpen, onClose, onSubm
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [seriesDay, setSeriesDay] = useState<number | ''>('');
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [sourceDagId, setSourceDagId] = useState<string>('');
   const [selectedEventTypeId, setSelectedEventTypeId] = useState('');
   const [isCustomType, setIsCustomType] = useState(false);
   const [customTypeName, setCustomTypeName] = useState('');
@@ -54,6 +60,10 @@ const AddEventDialog: React.FC<AddEventDialogProps> = ({ isOpen, onClose, onSubm
   const [isLoadingTypes, setIsLoadingTypes] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [nodeSearchQuery, setNodeSearchQuery] = useState('');
+  const [tags, setTags] = useState<Array<{ id: string; name: string; color: string | null }>>([]);
+  const [isLoadingTags, setIsLoadingTags] = useState(false);
+  const [dags, setDags] = useState<Array<{ id: string; name: string }>>([]);
+  const [isLoadingDags, setIsLoadingDags] = useState(false);
 
   useEffect(() => {
     async function fetchEventTypes() {
@@ -73,10 +83,40 @@ const AddEventDialog: React.FC<AddEventDialogProps> = ({ isOpen, onClose, onSubm
         setIsLoadingTypes(false);
       }
     }
+    async function fetchTags() {
+      setIsLoadingTags(true);
+      try {
+        const res = await fetch('/api/tags');
+        if (res.ok) {
+          const data = await res.json();
+          setTags(data.tags || []);
+        }
+      } catch (e) {
+        console.error("Failed to load tags", e);
+      } finally {
+        setIsLoadingTags(false);
+      }
+    }
+    async function fetchDags() {
+      setIsLoadingDags(true);
+      try {
+        const res = await fetch('/api/dags');
+        if (res.ok) {
+          const data = await res.json();
+          setDags((data.dags || []).filter((d: { id: string }) => d.id !== dagId));
+        }
+      } catch (e) {
+        console.error("Failed to load DAGs", e);
+      } finally {
+        setIsLoadingDags(false);
+      }
+    }
     if (isOpen) {
         fetchEventTypes();
+        fetchTags();
+        fetchDags();
     }
-  }, [isOpen]);
+  }, [isOpen, dagId]);
 
   // Fetch roles when creating new target node
   useEffect(() => {
@@ -115,6 +155,9 @@ const AddEventDialog: React.FC<AddEventDialogProps> = ({ isOpen, onClose, onSubm
         setTitle('');
         setDescription('');
         setDate(new Date().toISOString().split('T')[0]);
+        setSeriesDay('');
+        setSelectedTagIds([]);
+        setSourceDagId('');
         setIsCustomType(false);
         setCustomTypeName('');
         setNodeSearchQuery('');
@@ -220,6 +263,12 @@ const AddEventDialog: React.FC<AddEventDialogProps> = ({ isOpen, onClose, onSubm
       return;
     }
 
+    // Validate that at least date, seriesDay, or sourceDagId is provided
+    if (!date && !seriesDay && !sourceDagId) {
+      toast.error("Please provide a date, series day, or source DAG");
+      return;
+    }
+
     // If creating new target, create it first (only if target nodes are allowed)
     let finalTargetNodeId = targetNodeId;
     if (allowTargetNode && isCreatingNewTarget) {
@@ -237,7 +286,10 @@ const AddEventDialog: React.FC<AddEventDialogProps> = ({ isOpen, onClose, onSubm
         await onSubmit({
             title: title.trim(),
             description: description.trim() || undefined,
-            date,
+            date: date || undefined,
+            seriesDay: seriesDay !== '' ? Number(seriesDay) : undefined,
+            tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
+            sourceDagId: sourceDagId || undefined,
             eventTypeId: isCustomType ? undefined : selectedEventTypeId,
             customTypeName: isCustomType ? customTypeName.trim() : undefined,
             sourceNodeId: sourceNodeId || undefined,
@@ -304,13 +356,29 @@ const AddEventDialog: React.FC<AddEventDialogProps> = ({ isOpen, onClose, onSubm
             <div className="grid grid-cols-2 gap-4">
                 {/* Date */}
                 <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-wide">Date</label>
+                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-wide">
+                        Date <span className="text-zinc-400 font-normal">(Optional)</span>
+                    </label>
                     <input 
-                        required
                         type="date" 
                         value={date}
                         onChange={e => setDate(e.target.value)}
                         className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all cursor-pointer"
+                    />
+                </div>
+
+                {/* Series Day */}
+                <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-wide">
+                        Series Day <span className="text-zinc-400 font-normal">(Optional)</span>
+                    </label>
+                    <input 
+                        type="number" 
+                        min="1"
+                        value={seriesDay}
+                        onChange={e => setSeriesDay(e.target.value === '' ? '' : parseInt(e.target.value) || '')}
+                        placeholder="e.g. 56"
+                        className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                     />
                 </div>
 
@@ -384,6 +452,65 @@ const AddEventDialog: React.FC<AddEventDialogProps> = ({ isOpen, onClose, onSubm
                     placeholder="Add context or notes..."
                     className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none"
                 />
+            </div>
+
+            {/* Tags */}
+            <div className="space-y-1.5">
+                <label className="text-xs font-bold text-zinc-500 uppercase tracking-wide">
+                    Tags <span className="text-zinc-400 font-normal">(Optional)</span>
+                </label>
+                {isLoadingTags ? (
+                    <div className="px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-500 text-sm">Loading tags...</div>
+                ) : (
+                    <div className="flex flex-wrap gap-2 p-3 bg-zinc-50 border border-zinc-200 rounded-xl min-h-[3rem]">
+                        {tags.length === 0 ? (
+                            <span className="text-sm text-zinc-400">No tags available. Create tags via API.</span>
+                        ) : (
+                            tags.map(tag => (
+                                <button
+                                    key={tag.id}
+                                    type="button"
+                                    onClick={() => {
+                                        setSelectedTagIds(prev => 
+                                            prev.includes(tag.id) 
+                                                ? prev.filter(id => id !== tag.id)
+                                                : [...prev, tag.id]
+                                        );
+                                    }}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                                        selectedTagIds.includes(tag.id)
+                                            ? 'bg-indigo-600 text-white shadow-md'
+                                            : 'bg-white text-zinc-700 border border-zinc-300 hover:bg-zinc-100'
+                                    }`}
+                                    style={selectedTagIds.includes(tag.id) && tag.color ? { backgroundColor: tag.color } : {}}
+                                >
+                                    {tag.name}
+                                </button>
+                            ))
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Source DAG */}
+            <div className="space-y-1.5">
+                <label className="text-xs font-bold text-zinc-500 uppercase tracking-wide">
+                    Source DAG <span className="text-zinc-400 font-normal">(Optional)</span>
+                </label>
+                {isLoadingDags ? (
+                    <div className="px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-500 text-sm">Loading DAGs...</div>
+                ) : (
+                    <select
+                        value={sourceDagId}
+                        onChange={e => setSourceDagId(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all cursor-pointer"
+                    >
+                        <option value="">No source DAG (event is from this DAG)</option>
+                        {dags.map(dag => (
+                            <option key={dag.id} value={dag.id}>{dag.name}</option>
+                        ))}
+                    </select>
+                )}
             </div>
 
             {/* Node Relationships */}

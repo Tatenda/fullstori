@@ -4,17 +4,17 @@ import { AlertCircle, Check, CheckCircle2, ChevronDown, ChevronUp, Filter, Loade
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import ReactFlow, {
-  Background,
-  type Connection,
-  Controls,
-  type Edge,
-  MiniMap,
-  type Node,
-  type NodeChange,
-  Panel,
-  type ReactFlowInstance,
-  useEdgesState,
-  useNodesState
+    Background,
+    type Connection,
+    Controls,
+    type Edge,
+    MiniMap,
+    type Node,
+    type NodeChange,
+    Panel,
+    type ReactFlowInstance,
+    useEdgesState,
+    useNodesState
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { DAGHeader } from "./DAGHeader";
@@ -495,34 +495,27 @@ const MadlangaNetwork: React.FC<MadlangaNetworkProps> = ({ dagId: propDagId, onV
     if (!pendingConnection || !pendingConnection.source || !pendingConnection.target) return;
 
     try {
+      // Apply edge styling based on relationship
+      const style = getEdgeStyle(data.relationship);
+
       // Create the edge with the relationship label
-      const newEdge: Edge & {
-        style: { stroke: string; strokeWidth: number };
-        labelStyle: { fill: string; fontWeight: number; fontSize: number };
-        labelBgStyle: { fill: string; rx: number; ry: number };
-        markerEnd?: string | { type: string; color: string; width: number; height: number };
-      } = {
+      const newEdge = {
         id: `e-${pendingConnection.source}-${pendingConnection.target}`,
         source: pendingConnection.source,
         target: pendingConnection.target,
         sourceHandle: pendingConnection.sourceHandle || undefined,
         targetHandle: pendingConnection.targetHandle || undefined,
         label: data.relationship,
-        style: { stroke: '#cbd5e1', strokeWidth: 2 },
-        labelStyle: { fill: '#64748b', fontWeight: 700, fontSize: 11 },
-        labelBgStyle: { fill: '#f8fafc', rx: 6, ry: 6 },
-        markerEnd: 'arrowclosed' as const,
-    };
-
-      // Apply edge styling based on relationship
-      const style = getEdgeStyle(data.relationship);
-      newEdge.style.stroke = style.stroke;
-      newEdge.labelStyle.fill = style.labelText;
-      newEdge.labelBgStyle.fill = style.labelBg;
-      // Update arrow color to match edge color (only if markerEnd is an object)
-      if (newEdge.markerEnd && typeof newEdge.markerEnd === 'object') {
-        newEdge.markerEnd.color = style.stroke;
-      }
+        style: { stroke: style.stroke, strokeWidth: 2 },
+        labelStyle: { fill: style.labelText, fontWeight: 700, fontSize: 11 },
+        labelBgStyle: { fill: style.labelBg, rx: 6, ry: 6 },
+        markerEnd: {
+          type: 'arrowclosed' as const,
+          color: style.stroke,
+          width: 20,
+          height: 20,
+        },
+    } as Edge;
 
       // Add edge to state
       setEdges((eds) => {
@@ -774,23 +767,25 @@ const MadlangaNetwork: React.FC<MadlangaNetworkProps> = ({ dagId: propDagId, onV
 
     console.log('Adding new node:', newNode);
 
-    const newEdge: Edge & {
-      style: { stroke: string; strokeWidth: number };
-      labelStyle: { fill: string; fontWeight: number; fontSize: number };
-      labelBgStyle: { fill: string; rx: number; ry: number };
-      markerEnd?: string | { type: string; color: string; width: number; height: number };
-      relationshipTypeId?: string;
-    } = {
+    // Get edge styling based on relationship
+    const edgeStyle = getEdgeStyle(data.relationship || 'Connected');
+
+    const newEdge = {
         id: `e-${selectedNode.id}-${newNodeId}`,
         source: selectedNode.id,
         target: newNodeId,
         label: data.relationship || 'Connected',
         relationshipTypeId: data.relationshipTypeId, // Store relationship type ID for referential integrity
-        style: { stroke: '#cbd5e1', strokeWidth: 2 },
-        labelStyle: { fill: '#64748b', fontWeight: 700, fontSize: 11 },
-        labelBgStyle: { fill: '#f8fafc', rx: 6, ry: 6 },
-        markerEnd: 'arrowclosed' as const,
-    };
+        style: { stroke: edgeStyle.stroke, strokeWidth: 2 },
+        labelStyle: { fill: edgeStyle.labelText, fontWeight: 700, fontSize: 11 },
+        labelBgStyle: { fill: edgeStyle.labelBg, rx: 6, ry: 6 },
+        markerEnd: {
+          type: 'arrowclosed' as const,
+          color: edgeStyle.stroke,
+          width: 20,
+          height: 20,
+        },
+    } as Edge;
 
     // Set handles based on direction for proper connection points
     if (currentDirection) {
@@ -828,9 +823,19 @@ const MadlangaNetwork: React.FC<MadlangaNetworkProps> = ({ dagId: propDagId, onV
     
     // Apply specialized edge styling
     const style = getEdgeStyle(data.relationship);
-    newEdge.style.stroke = style.stroke;
-    newEdge.labelStyle.fill = style.labelText;
-    newEdge.labelBgStyle.fill = style.labelBg;
+    if (newEdge.style) {
+      newEdge.style.stroke = style.stroke;
+    }
+    if (newEdge.labelStyle) {
+      newEdge.labelStyle.fill = style.labelText;
+    }
+    if (newEdge.labelBgStyle) {
+      newEdge.labelBgStyle.fill = style.labelBg;
+    }
+    // Update arrow color to match edge color
+    if (newEdge.markerEnd && typeof newEdge.markerEnd === 'object') {
+      newEdge.markerEnd.color = style.stroke;
+    }
 
     console.log('Creating edge:', newEdge);
 

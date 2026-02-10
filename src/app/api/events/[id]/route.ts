@@ -13,6 +13,9 @@ export async function PUT(
       title, 
       description, 
       date, 
+      seriesDay,
+      tagIds,
+      sourceDagId,
       eventTypeId, 
       customTypeName, 
       sourceNodeId,
@@ -26,8 +29,9 @@ export async function PUT(
       return NextResponse.json({ error: "Event title is required" }, { status: 400 });
     }
 
-    if (!date) {
-      return NextResponse.json({ error: "Event date is required" }, { status: 400 });
+    // Date is optional if seriesDay is provided, or if event is from another DAG
+    if (!date && !seriesDay && !sourceDagId) {
+      return NextResponse.json({ error: "Event date or series day is required" }, { status: 400 });
     }
 
     if (!eventTypeId && !customTypeName) {
@@ -90,10 +94,13 @@ export async function PUT(
       finalEventTypeId = existingType.id;
     }
 
-    // Parse and validate date
-    const eventDate = new Date(date);
-    if (isNaN(eventDate.getTime())) {
-      return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
+    // Parse and validate date (optional)
+    let eventDate: Date | null = null;
+    if (date) {
+      eventDate = new Date(date);
+      if (isNaN(eventDate.getTime())) {
+        return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
+      }
     }
 
     // Update event with node relationships
@@ -101,7 +108,9 @@ export async function PUT(
       title: title.trim(),
       description: description?.trim() || null,
       date: eventDate,
+      seriesDay: seriesDay !== undefined && seriesDay !== null ? parseInt(String(seriesDay)) : null,
       eventTypeId: finalEventTypeId,
+      sourceDagId: sourceDagId || null,
       sourceNodeId: sourceNodeId || null,
       targetNodeId: targetNodeId || null,
     };
@@ -120,11 +129,38 @@ export async function PUT(
       }
     }
 
+    // Update tags if provided
+    if (tagIds !== undefined) {
+      if (Array.isArray(tagIds) && tagIds.length > 0) {
+        const validTagIds = tagIds.filter((id: string) => id && id.trim().length > 0);
+        updateData.tags = {
+          set: validTagIds.map((id: string) => ({ id }))
+        };
+      } else {
+        updateData.tags = {
+          set: []
+        };
+      }
+    }
+
     const updatedEvent = await prisma.event.update({
       where: { id },
       data: updateData,
       include: {
         eventType: true,
+        tags: {
+          select: {
+            id: true,
+            name: true,
+            color: true
+          }
+        },
+        sourceDag: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
         sourceNode: {
           include: {
             entity: {

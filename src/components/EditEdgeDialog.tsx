@@ -46,11 +46,20 @@ const EditEdgeDialog: React.FC<EditEdgeDialogProps> = ({ isOpen, onClose, edgeLa
 
   useEffect(() => {
     setLabel(edgeLabel);
-    // If the existing label is not in the list, set custom logic? 
-    // For simplicity, default to custom mode if editing, or check if it exists in list.
-    // Let's default to Custom mode for editing (showing existing text), but user can switch to list.
+    setRelationshipTypeId('');
+    // Check if the existing label matches a relationship in the list
+    // If it does, set the relationshipTypeId and switch to list mode
+    for (const category of Object.values(relationshipsByCategory)) {
+      const rel = category.find(r => r.name === edgeLabel);
+      if (rel && rel.id) {
+        setRelationshipTypeId(rel.id);
+        setIsCustomRelationship(false);
+        return;
+      }
+    }
+    // If not found, default to custom mode
     setIsCustomRelationship(true);
-  }, [edgeLabel, isOpen]);
+  }, [edgeLabel, isOpen, relationshipsByCategory]);
 
   if (!isOpen) return null;
 
@@ -111,17 +120,31 @@ const EditEdgeDialog: React.FC<EditEdgeDialogProps> = ({ isOpen, onClose, edgeLa
       setRelationshipTypeId('');
     } else {
       setIsCustomRelationship(false);
-      // Find the relationship by ID to get its name
+      // Find the relationship by ID or name to get its name and ID
       let relName = '';
+      let relId = '';
       for (const category of Object.values(relationshipsByCategory)) {
-        const rel = category.find(r => r.id === relIdOrCustom);
+        // Try to find by ID first
+        let rel = category.find(r => r.id === relIdOrCustom);
+        // If not found by ID, try by name (for backward compatibility)
+        if (!rel) {
+          rel = category.find(r => r.name === relIdOrCustom);
+        }
         if (rel) {
           relName = rel.name;
+          relId = rel.id || relIdOrCustom; // Use the ID if available, otherwise use the value passed
           break;
         }
       }
-      setLabel(relName);
-      setRelationshipTypeId(relIdOrCustom);
+      // If we found a relationship, set both name and ID
+      if (relName) {
+        setLabel(relName);
+        setRelationshipTypeId(relId);
+      } else {
+        // Fallback: use the value as both name and ID
+        setLabel(relIdOrCustom);
+        setRelationshipTypeId(relIdOrCustom);
+      }
     }
   };
 
@@ -149,7 +172,7 @@ const EditEdgeDialog: React.FC<EditEdgeDialogProps> = ({ isOpen, onClose, edgeLa
                 {!isCustomRelationship ? (
                     <select
                         required
-                        value={label}
+                        value={relationshipTypeId || label || ''}
                         onChange={(e) => handleRelationshipSelection(e.target.value)}
                         className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all appearance-none cursor-pointer"
                     >

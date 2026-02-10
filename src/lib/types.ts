@@ -81,15 +81,28 @@ export interface EventType {
   color: string | null;
 }
 
+export interface Tag {
+  id: string;
+  name: string;
+  color: string | null;
+}
+
 export interface Event {
   id: string;
   title: string;
   description: string | null;
-  date: string; // ISO string from JSON
+  date: string | null; // ISO string from JSON, optional for events from other DAGs
+  seriesDay: number | null; // Optional: day number in a series (e.g., "Day 1", "Day 56")
   sortOrder: number; // Custom order for events on the same day
   eventTypeId: string;
   eventType: EventType;
   dagId: string;
+  sourceDagId?: string | null; // Optional: if event is from another DAG
+  sourceDag?: {
+    id: string;
+    name: string;
+  } | null;
+  tags?: Tag[];
   // Node relationships
   sourceNodeId?: string | null;
   sourceNode?: {

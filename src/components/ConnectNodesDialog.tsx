@@ -38,7 +38,7 @@ const ConnectNodesDialog: React.FC<ConnectNodesDialogProps> = ({
   dagId: _dagId
 }) => {
   const [relationship, setRelationship] = useState('');
-  const [relationshipTypeId, _setRelationshipTypeId] = useState<string>('');
+  const [relationshipTypeId, setRelationshipTypeId] = useState<string>('');
   const [isCustomRelationship, setIsCustomRelationship] = useState(true);
   const [relationshipsByCategory, setRelationshipsByCategory] = useState<Record<string, Array<{ id: string; name: string }>>>({});
   const [isLoadingRelationships, setIsLoadingRelationships] = useState(false);
@@ -108,6 +108,7 @@ const ConnectNodesDialog: React.FC<ConnectNodesDialogProps> = ({
   useEffect(() => {
     if (!isOpen) {
       setRelationship('');
+      setRelationshipTypeId('');
       setIsCustomRelationship(true);
       setCreateEvent(false);
       setEventTitle('');
@@ -219,8 +220,9 @@ const ConnectNodesDialog: React.FC<ConnectNodesDialogProps> = ({
     }
   };
 
-  const handleRelationshipSelect = (rel: string) => {
-    setRelationship(rel);
+  const handleRelationshipSelect = (relId: string, relName: string) => {
+    setRelationship(relName);
+    setRelationshipTypeId(relId);
     setIsCustomRelationship(false);
   };
 
@@ -296,21 +298,26 @@ const ConnectNodesDialog: React.FC<ConnectNodesDialogProps> = ({
                         <div className="text-xs font-semibold text-muted-foreground px-2 py-1 uppercase tracking-wide">
                           {category.replace('_', ' ')}
                         </div>
-                        {rels.map((rel) => (
-                          <button
-                            key={rel.id || rel.name}
-                            type="button"
-                            onClick={() => handleRelationshipSelect(rel.id || rel.name)}
-                            className={clsx(
-                              "w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
-                              relationship === rel.name
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted text-foreground"
-                            )}
-                          >
-                            {rel.name}
-                          </button>
-                        ))}
+                        {rels.map((rel) => {
+                          const relId = rel.id || '';
+                          const relName = rel.name;
+                          const isSelected = relationshipTypeId === relId && relationship === relName;
+                          return (
+                            <button
+                              key={relId || relName}
+                              type="button"
+                              onClick={() => handleRelationshipSelect(relId, relName)}
+                              className={clsx(
+                                "w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
+                                isSelected
+                                  ? "bg-primary text-primary-foreground"
+                                  : "hover:bg-muted text-foreground"
+                              )}
+                            >
+                              {relName}
+                            </button>
+                          );
+                        })}
                       </div>
                     ))}
                   </div>

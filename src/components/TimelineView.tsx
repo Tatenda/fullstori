@@ -62,10 +62,18 @@ export default function TimelineView({ dagId, onViewChange }: TimelineViewProps)
   useEffect(() => {
     if (dagId) {
       Promise.all([
-        fetch(`/api/events?dagId=${dagId}`).then(res => res.json()),
+        fetch(`/api/events?dagId=${dagId}`).then(async res => {
+          if (!res.ok) {
+            const error = await res.json().catch(() => ({ error: 'Unknown error' }));
+            console.error('Failed to fetch events:', res.status, error);
+            return { events: [] };
+          }
+          return res.json();
+        }),
         fetch('/api/event-types').then(res => res.json()),
         fetch(`/api/dag/${dagId}`).then(res => res.json()).catch(() => ({ dag: null })),
       ]).then(([eventsData, typesData, dagData]) => {
+        console.log('Events data:', eventsData);
         setEvents(eventsData.events || []);
         setEventTypes(typesData.eventTypes || []);
         if (dagData.dag) {
@@ -320,41 +328,52 @@ export default function TimelineView({ dagId, onViewChange }: TimelineViewProps)
       if (eventIndex === -1) return;
 
       const event = filteredEvents[eventIndex];
-      const eventDate = new Date(event.date);
+      
+      // Handle events with or without dates - group by date or seriesDay
+      const getEventGroupKey = (e: Event) => {
+        if (e.date) return `date-${new Date(e.date).toISOString().split('T')[0]}`;
+        if (e.seriesDay !== null && e.seriesDay !== undefined) return `series-${e.seriesDay}`;
+        return 'no-date';
+      };
+      
+      const currentGroupKey = getEventGroupKey(event);
 
-      // Get all events on the same day, sorted by current order
-      const sameDayEvents = filteredEvents
-        .filter(e => {
-          const eDate = new Date(e.date);
-          return eDate.getFullYear() === eventDate.getFullYear() &&
-                 eDate.getMonth() === eventDate.getMonth() &&
-                 eDate.getDate() === eventDate.getDate();
-        })
+      // Get all events in the same group, sorted by current order
+      const sameGroupEvents = filteredEvents
+        .filter(e => getEventGroupKey(e) === currentGroupKey)
         .sort((a, b) => {
-          // Sort by sortOrder, then by createdAt as fallback
+          // Sort by sortOrder, then by date or seriesDay as fallback
           if (a.sortOrder !== b.sortOrder) {
             return a.sortOrder - b.sortOrder;
           }
-          return new Date(a.date).getTime() - new Date(b.date).getTime();
+          // If both have dates, sort by date
+          if (a.date && b.date) {
+            return new Date(a.date).getTime() - new Date(b.date).getTime();
+          }
+          // If both have seriesDay, sort by seriesDay
+          if (a.seriesDay !== null && a.seriesDay !== undefined && b.seriesDay !== null && b.seriesDay !== undefined) {
+            return a.seriesDay - b.seriesDay;
+          }
+          return 0;
         });
 
-      // Find current position in same-day events
-      const sameDayIndex = sameDayEvents.findIndex(e => e.id === eventId);
-      if (sameDayIndex === -1) return;
+      // Find current position in same-group events
+      const sameGroupIndex = sameGroupEvents.findIndex(e => e.id === eventId);
+      if (sameGroupIndex === -1) return;
 
       // Calculate new position
-      let newIndex = sameDayIndex;
-      if (direction === 'up' && sameDayIndex > 0) {
-        newIndex = sameDayIndex - 1;
-      } else if (direction === 'down' && sameDayIndex < sameDayEvents.length - 1) {
-        newIndex = sameDayIndex + 1;
+      let newIndex = sameGroupIndex;
+      if (direction === 'up' && sameGroupIndex > 0) {
+        newIndex = sameGroupIndex - 1;
+      } else if (direction === 'down' && sameGroupIndex < sameGroupEvents.length - 1) {
+        newIndex = sameGroupIndex + 1;
       } else {
         return; // Can't move in that direction
       }
 
       // Swap events
-      const reorderedEvents = [...sameDayEvents];
-      [reorderedEvents[sameDayIndex], reorderedEvents[newIndex]] = [reorderedEvents[newIndex], reorderedEvents[sameDayIndex]];
+      const reorderedEvents = [...sameGroupEvents];
+      [reorderedEvents[sameGroupIndex], reorderedEvents[newIndex]] = [reorderedEvents[newIndex], reorderedEvents[sameGroupIndex]];
 
       // Send reorder request
       const res = await fetch('/api/events/reorder', {
@@ -362,7 +381,8 @@ export default function TimelineView({ dagId, onViewChange }: TimelineViewProps)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dagId,
-          date: event.date,
+          date: event.date || undefined,
+          seriesDay: event.seriesDay || undefined,
           eventIds: reorderedEvents.map(e => e.id)
         })
       });

@@ -271,27 +271,71 @@ export async function POST(
   const { nodes, edges } = body;
 
   try {
+    // Validate input data first
+    if (!Array.isArray(nodes)) {
+      return NextResponse.json({ error: "Invalid nodes data" }, { status: 400 });
+    }
+    if (!Array.isArray(edges)) {
+      return NextResponse.json({ error: "Invalid edges data" }, { status: 400 });
+    }
+
+    // Verify DAG exists before starting transaction
+    const dagExists = await prisma.dAG.findUnique({
+      where: { id },
+      select: { id: true }
+    });
+    if (!dagExists) {
+      return NextResponse.json({ error: "DAG not found" }, { status: 404 });
+    }
+
+    // Pre-validate all nodes before transaction
+    for (const node of nodes) {
+      if (!node || !node.id) {
+        return NextResponse.json({ error: `Invalid node structure: missing id` }, { status: 400 });
+      }
+      if (!node.data?.entityId) {
+        return NextResponse.json({ error: `Node ${node.id} is missing required entityId` }, { status: 400 });
+      }
+      if (!node.position || typeof node.position.x !== 'number' || typeof node.position.y !== 'number') {
+        return NextResponse.json({ error: `Node ${node.id} has invalid position data` }, { status: 400 });
+      }
+    }
+
+    // Pre-validate all edges before transaction
+    for (const edge of edges) {
+      if (!edge || !edge.id) {
+        return NextResponse.json({ error: `Invalid edge structure: missing id` }, { status: 400 });
+      }
+      if (!edge.source || !edge.target) {
+        return NextResponse.json({ error: `Edge ${edge.id} is missing required source or target` }, { status: 400 });
+      }
+    }
+
     await prisma.$transaction(async (tx) => {
       // 1. Sync Nodes
       // Delete missing nodes (but never delete root nodes)
-      const sentNodeIds = nodes.map((n: any) => n.id);
+      const sentNodeIds = nodes.map((n: any) => n.id).filter((id: any) => id != null && typeof id === 'string');
       
-      await tx.dAGNode.deleteMany({
-        where: {
-          dagId: id,
-          id: { notIn: sentNodeIds },
-          type: { not: "root" } // Never delete root nodes
+      if (sentNodeIds.length > 0) {
+        try {
+          await tx.dAGNode.deleteMany({
+            where: {
+              dagId: id,
+              id: { notIn: sentNodeIds },
+              type: { not: "root" } // Never delete root nodes
+            }
+          });
+        } catch (error) {
+          console.error("Error deleting nodes:", error);
+          throw error;
         }
-      });
+      }
 
       // Upsert existing - Only save position/type, entity data is managed separately
       for (const node of nodes) {
-        // Validate entityId exists (required)
         const entityId = node.data.entityId;
-        if (!entityId) {
-          throw new Error(`Node ${node.id} is missing required entityId`);
-        }
 
+        // Verify entity exists before upserting node
         const entity = await tx.entity.findUnique({
           where: { id: entityId },
           include: {
@@ -327,7 +371,7 @@ export async function POST(
           update: {
             x: finalX,
             y: finalY,
-            category: node.data.category || null, // Optional category override
+            category: node.data?.category || null, // Optional category override
             type: nodeType,
             // Note: entityId, label, roleId, description are NOT updated here
             // They come from the Entity (single source of truth)
@@ -338,7 +382,7 @@ export async function POST(
             entityId: entityId, // Required
             x: finalX,
             y: finalY,
-            category: node.data.category || null,
+            category: node.data?.category || null,
             type: nodeType,
           }
         });
@@ -346,16 +390,27 @@ export async function POST(
 
       // 2. Sync Edges
       // Delete missing
-      const sentEdgeIds = edges.map((e: any) => e.id);
-      await tx.dAGEdge.deleteMany({
-        where: {
-          dagId: id,
-          id: { notIn: sentEdgeIds }
-        }
-      });
+      const sentEdgeIds = edges.map((e: any) => e.id).filter((id: any) => id != null);
+      
+      if (sentEdgeIds.length > 0) {
+        await tx.dAGEdge.deleteMany({
+          where: {
+            dagId: id,
+            id: { notIn: sentEdgeIds }
+          }
+        });
+      }
 
       // Upsert existing
       for (const edge of edges) {
+        // Validate edge structure
+        if (!edge || !edge.id) {
+          throw new Error(`Invalid edge structure: missing id`);
+        }
+        if (!edge.source || !edge.target) {
+          throw new Error(`Edge ${edge.id} is missing required source or target`);
+        }
+
         // If relationshipTypeId is provided, use it; otherwise use label for custom relationships
         const relationshipTypeId = edge.relationshipTypeId || null;
         const label = relationshipTypeId ? null : (edge.label || null); // Only use label if no relationshipTypeId
@@ -365,8 +420,8 @@ export async function POST(
           update: {
             relationshipTypeId,
             label,
-            sourceHandle: edge.sourceHandle,
-            targetHandle: edge.targetHandle
+            sourceHandle: edge.sourceHandle || null,
+            targetHandle: edge.targetHandle || null
           },
           create: {
             id: edge.id,
@@ -375,17 +430,40 @@ export async function POST(
             targetId: edge.target,
             relationshipTypeId,
             label,
-            sourceHandle: edge.sourceHandle,
-            targetHandle: edge.targetHandle
+            sourceHandle: edge.sourceHandle || null,
+            targetHandle: edge.targetHandle || null
           }
         });
       }
+    }, {
+      timeout: 30000 // 30 second timeout
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error("API Error saving DAG:", error);
-    return NextResponse.json({ error: "Failed to save DAG", details: String(error) }, { status: 500 });
+    
+    // Handle Prisma transaction errors specifically
+    if (error?.code === 'P2028') {
+      return NextResponse.json({ 
+        error: "Transaction failed - the database operation was interrupted. Please try again.",
+        details: error.message 
+      }, { status: 500 });
+    }
+    
+    // Handle Prisma validation errors
+    if (error?.code && error.code.startsWith('P')) {
+      return NextResponse.json({ 
+        error: "Database error occurred",
+        details: error.message,
+        code: error.code
+      }, { status: 500 });
+    }
+    
+    return NextResponse.json({ 
+      error: "Failed to save DAG", 
+      details: error?.message || String(error) 
+    }, { status: 500 });
   }
 }
 

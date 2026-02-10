@@ -5,7 +5,7 @@ import type { NetworkNode } from './types';
  */
 export function calculateSmartPosition(
   relatedNodes: NetworkNode[],
-  allNodes: NetworkNode[],
+  _allNodes: NetworkNode[],
   viewport?: { x: number; y: number; zoom: number }
 ): { x: number; y: number } {
   // If no related nodes, position at center of viewport or graph center

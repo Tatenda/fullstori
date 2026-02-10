@@ -4,7 +4,7 @@ import { NetworkNode } from "@/lib/types";
 
 // GET /api/dag/[id] - Fetch DAG
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> } // Params are now Promises in Next 15+ (backwards compatible in 14 via await types but safe pattern)
 ) {
   const { id } = await params;
@@ -273,19 +273,8 @@ export async function POST(
   try {
     await prisma.$transaction(async (tx) => {
       // 1. Sync Nodes
-      // Get existing root nodes to protect them
-      const existingRootNodes = await tx.dAGNode.findMany({
-        where: {
-          dagId: id,
-          type: "root"
-        },
-        select: { id: true }
-      });
-      const rootNodeIds = new Set(existingRootNodes.map(n => n.id));
-
       // Delete missing nodes (but never delete root nodes)
       const sentNodeIds = nodes.map((n: any) => n.id);
-      const _nodesToDelete = sentNodeIds.filter((nodeId: string) => !rootNodeIds.has(nodeId));
       
       await tx.dAGNode.deleteMany({
         where: {

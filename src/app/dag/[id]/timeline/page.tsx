@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Calendar, Filter, ArrowLeft, Clock } from 'lucide-react';
 import EventTimeline from '@/components/EventTimeline';

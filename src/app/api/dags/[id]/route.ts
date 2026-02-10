@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 // GET /api/dags/[id] - Get DAG metadata
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
@@ -71,7 +71,7 @@ export async function PATCH(
 
 // DELETE /api/dags/[id] - Delete DAG
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;

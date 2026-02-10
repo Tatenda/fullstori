@@ -2,21 +2,21 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 // POST: Create a new event
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   try {
-    const body = await request.json();
+    const body = await _request.json();
     const { 
       title, 
       description, 
       date, 
-      eventTypeId, 
       customTypeName, 
       sourceNodeId,
       targetNodeId,
       participantNodeIds,
       createEdge,
       dagId 
-    } = body; 
+    } = body;
+    let eventTypeId = body.eventTypeId; 
 
     if (!title || !title.trim()) {
       return NextResponse.json({ error: "Event title is required" }, { status: 400 });

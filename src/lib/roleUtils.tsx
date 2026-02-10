@@ -1,6 +1,5 @@
 import { Role, RoleCategory } from "./types";
 import { User, Briefcase, Landmark, Shield, AlertTriangle, Heart, Eye } from "lucide-react";
-import React from "react";
 
 // 1. Map specific Roles (Titles) to Broad Categories
 export const getRoleCategory = (role: Role): RoleCategory => {

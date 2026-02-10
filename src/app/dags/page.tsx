@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Network, GitBranch, Calendar, Trash2, ArrowRight, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';

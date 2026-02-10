@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Create role error:", error);
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Invalid data", details: error.errors }, { status: 400 });
+      return NextResponse.json({ error: "Invalid data", details: error.issues }, { status: 400 });
     }
     return NextResponse.json({ error: "Failed to create role", details: String(error) }, { status: 500 });
   }

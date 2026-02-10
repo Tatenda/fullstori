@@ -6,6 +6,8 @@ interface CardProps {
   className?: string;
   hover?: boolean;
   onClick?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   padding?: 'none' | 'sm' | 'md' | 'lg';
 }
 
@@ -21,11 +23,15 @@ export const Card: React.FC<CardProps> = ({
   className,
   hover = false,
   onClick,
+  onMouseEnter,
+  onMouseLeave,
   padding = 'md'
 }) => {
   return (
     <div
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       className={clsx(
         "bg-background border border-border rounded-xl shadow-sm",
         paddingClasses[padding],

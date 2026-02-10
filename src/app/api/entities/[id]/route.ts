@@ -12,7 +12,7 @@ const UpdateEntitySchema = z.object({
 
 // GET /api/entities/[id] - Get an entity by ID
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -101,7 +101,7 @@ export async function PUT(
   } catch (error) {
     console.error("Update entity error:", error);
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Invalid data", details: error.errors }, { status: 400 });
+      return NextResponse.json({ error: "Invalid data", details: error.issues }, { status: 400 });
     }
     return NextResponse.json({ error: "Failed to update entity", details: String(error) }, { status: 500 });
   }
